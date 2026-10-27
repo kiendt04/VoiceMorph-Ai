@@ -1,0 +1,17 @@
+name: voice_core
+description: Offline DSP voice-changing engine for VoiceMorph. Pure Dart, runs on Android and iOS.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.8.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
+
+# Picked up by the Flutter app that depends on this package:
+# rootBundle.loadString('packages/voice_core/assets/presets/default_presets.json')
+flutter:
+  assets:
+    - assets/presets/default_presets.json
