@@ -9,6 +9,7 @@
 library;
 
 export 'src/audio_processor.dart';
+export 'src/audio_utils.dart';
 export 'src/dsp/resampler.dart' show Resampler;
 export 'src/engine/effect_factory.dart';
 export 'src/engine/offline_renderer.dart';

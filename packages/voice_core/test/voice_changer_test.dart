@@ -74,6 +74,21 @@ void main() {
     expect(File(VoiceChanger.tempPathFor(output)).existsSync(), isFalse);
   });
 
+  test('renderFile replaces an existing output and validates the rate', () {
+    final input = '${folder.path}/original.wav';
+    final output = '${folder.path}/nested/render.wav';
+    WavIO.writeFile(input, voiceLike(1), sampleRate);
+
+    changer.renderFile(input, output, preset('robot'));
+    expect(File(output).existsSync(), isTrue);
+    // A second render over the same path must replace it, not fail.
+    changer.renderFile(input, output, preset('robot'));
+    expect(WavIO.readFile(output).samples.length, greaterThanOrEqualTo(sampleRate));
+    expect(File(VoiceChanger.tempPathFor(output)).existsSync(), isFalse);
+
+    expect(() => changer.render(Float32List(0), 0, presets.first), throwsArgumentError);
+  });
+
   test('cancelled file render leaves no output', () {
     final input = '${folder.path}/original.wav';
     final output = '${folder.path}/render.wav';

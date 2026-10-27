@@ -27,6 +27,7 @@ class VoiceChanger {
     ProgressCallback? onProgress,
     CancelCheck? isCancelled,
   }) {
+    _checkSampleRate(sampleRate);
     final chain = EffectFactory.createChain(preset.resolveChain(controlValues), sampleRate);
     return _renderer.render(audio, chain, onProgress: onProgress, isCancelled: isCancelled);
   }
@@ -62,7 +63,14 @@ class VoiceChanger {
         controlValues: controlValues, onProgress: onProgress, isCancelled: isCancelled);
     final temp = File(tempPathFor(outputPath));
     try {
+      // Create the destination folder if the app has not made it yet, and
+      // replace an existing output: File.rename fails on some platforms
+      // when the destination already exists.
+      final parent = File(outputPath).parent;
+      if (!parent.existsSync()) parent.createSync(recursive: true);
       WavIO.writeFile(temp.path, rendered, source.sampleRate);
+      final output = File(outputPath);
+      if (output.existsSync()) output.deleteSync();
       temp.renameSync(outputPath);
     } finally {
       if (temp.existsSync()) temp.deleteSync();
@@ -70,4 +78,10 @@ class VoiceChanger {
   }
 
   static String tempPathFor(String outputPath) => '$outputPath.tmp';
+
+  static void _checkSampleRate(int sampleRate) {
+    if (sampleRate <= 0) {
+      throw ArgumentError.value(sampleRate, 'sampleRate', 'must be positive');
+    }
+  }
 }
