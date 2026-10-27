@@ -7,7 +7,8 @@ void main() {
   test('computePeaks reports one peak per bucket', () {
     final samples = Float32List.fromList([0.1, -0.5, 0.2, 0.9, -0.3, 0.0]);
     final peaks = computePeaks(samples, 3);
-    expect(peaks, [0.5, 0.9, 0.3]);
+    // Float32 storage: 0.9 comes back as 0.8999999761...
+    expect(peaks, [for (final v in [0.5, 0.9, 0.3]) closeTo(v, 1e-6)]);
     expect(computePeaks(Float32List(0), 4), isEmpty);
     expect(() => computePeaks(samples, 0), throwsArgumentError);
   });
