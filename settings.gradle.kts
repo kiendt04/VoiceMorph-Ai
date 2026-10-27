@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "voicemorph-ai"
 include(":app")
+include(":core:dsp")

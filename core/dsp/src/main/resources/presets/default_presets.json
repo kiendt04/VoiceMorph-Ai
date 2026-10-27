@@ -1,0 +1,206 @@
+{
+  "presets": [
+    {
+      "id": "deep_male", "names": { "vi": "Nam trầm", "en": "Deep Male" },
+      "category": "human", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": -4 } },
+        { "type": "LOW_SHELF", "params": { "freq": 150, "gainDb": 3 } },
+        { "type": "HIGH_SHELF", "params": { "freq": 5000, "gainDb": -3 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "high_female", "names": { "vi": "Nữ cao", "en": "High Female" },
+      "category": "human", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 5 } },
+        { "type": "HIGHPASS", "params": { "freq": 150 } },
+        { "type": "PEAK", "params": { "freq": 3000, "gainDb": 2, "q": 1 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.3, "damping": 0.5, "mix": 0.08 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "child", "names": { "vi": "Trẻ em", "en": "Child" },
+      "category": "human", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 7, "tempo": 1.05 } },
+        { "type": "HIGHPASS", "params": { "freq": 200 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 2, "param": "mix" },
+        { "key": "reverb", "node": 3, "param": "mix" }
+      ]
+    },
+    {
+      "id": "elder", "names": { "vi": "Người già", "en": "Elder" },
+      "category": "human", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": -2, "tempo": 0.9 } },
+        { "type": "TREMOLO", "params": { "rate": 6, "depth": 0.25 } },
+        { "type": "LOWPASS", "params": { "freq": 5000 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "robot", "names": { "vi": "Robot", "en": "Robot" },
+      "category": "fantasy", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 0 } },
+        { "type": "RING_MOD", "params": { "freq": 40, "mix": 1 } },
+        { "type": "DISTORTION", "params": { "drive": 2, "mix": 0.3 } },
+        { "type": "ECHO", "params": { "delayMs": 25, "feedback": 0.3, "mix": 0.3 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "alien", "names": { "vi": "Người ngoài hành tinh", "en": "Alien" },
+      "category": "fantasy", "isPro": true, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 4 } },
+        { "type": "RING_MOD", "params": { "freq": 400, "mix": 0.5 } },
+        { "type": "TREMOLO", "params": { "rate": 12, "depth": 0.3 } },
+        { "type": "ECHO", "params": { "delayMs": 120, "feedback": 0.3, "mix": 0.25 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "ghost", "names": { "vi": "Ma quái", "en": "Ghost" },
+      "category": "fantasy", "isPro": true, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": -5, "tempo": 0.9 } },
+        { "type": "TREMOLO", "params": { "rate": 4, "depth": 0.3 } },
+        { "type": "ECHO", "params": { "delayMs": 400, "feedback": 0.4, "mix": 0.3 } },
+        { "type": "REVERB", "params": { "roomSize": 0.9, "damping": 0.2, "mix": 0.5 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 2, "param": "mix" },
+        { "key": "reverb", "node": 3, "param": "mix" }
+      ]
+    },
+    {
+      "id": "cave", "names": { "vi": "Hang động", "en": "Cave" },
+      "category": "place", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": -1 } },
+        { "type": "ECHO", "params": { "delayMs": 280, "feedback": 0.45, "mix": 0.4 } },
+        { "type": "REVERB", "params": { "roomSize": 0.85, "damping": 0.3, "mix": 0.45 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 1, "param": "mix" },
+        { "key": "reverb", "node": 2, "param": "mix" }
+      ]
+    },
+    {
+      "id": "chipmunk", "names": { "vi": "Sóc chuột", "en": "Chipmunk" },
+      "category": "fun", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 10, "tempo": 1.1 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 1, "param": "mix" },
+        { "key": "reverb", "node": 2, "param": "mix" }
+      ]
+    },
+    {
+      "id": "old_radio", "names": { "vi": "Radio cũ", "en": "Old Radio" },
+      "category": "fun", "isPro": false, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 0 } },
+        { "type": "HIGHPASS", "params": { "freq": 400 } },
+        { "type": "LOWPASS", "params": { "freq": 3000 } },
+        { "type": "PEAK", "params": { "freq": 1500, "gainDb": 4, "q": 1 } },
+        { "type": "DISTORTION", "params": { "drive": 6, "mix": 0.6 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 5, "param": "mix" },
+        { "key": "reverb", "node": 6, "param": "mix" }
+      ]
+    },
+    {
+      "id": "monster", "names": { "vi": "Quái vật", "en": "Monster" },
+      "category": "fantasy", "isPro": true, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": -9, "tempo": 0.95 } },
+        { "type": "LOW_SHELF", "params": { "freq": 120, "gainDb": 4 } },
+        { "type": "DISTORTION", "params": { "drive": 3, "mix": 0.4 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.5, "damping": 0.5, "mix": 0.2 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 3, "param": "mix" },
+        { "key": "reverb", "node": 4, "param": "mix" }
+      ]
+    },
+    {
+      "id": "megaphone", "names": { "vi": "Loa phóng thanh", "en": "Megaphone" },
+      "category": "fun", "isPro": true, "version": 1,
+      "chain": [
+        { "type": "PITCH", "params": { "semitones": 0 } },
+        { "type": "HIGHPASS", "params": { "freq": 600 } },
+        { "type": "LOWPASS", "params": { "freq": 4000 } },
+        { "type": "PEAK", "params": { "freq": 2000, "gainDb": 6, "q": 1.2 } },
+        { "type": "DISTORTION", "params": { "drive": 8, "mix": 0.7 } },
+        { "type": "ECHO", "params": { "delayMs": 250, "feedback": 0.35, "mix": 0 } },
+        { "type": "REVERB", "params": { "roomSize": 0.6, "damping": 0.5, "mix": 0 } }
+      ],
+      "controls": [
+        { "key": "pitch", "node": 0, "param": "semitones" },
+        { "key": "speed", "node": 0, "param": "tempo" },
+        { "key": "echo", "node": 5, "param": "mix" },
+        { "key": "reverb", "node": 6, "param": "mix" }
+      ]
+    }
+  ]
+}
