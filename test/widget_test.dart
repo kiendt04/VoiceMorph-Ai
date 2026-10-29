@@ -12,15 +12,18 @@ void main() {
   // path_provider không có plugin thật trong widget test: mock channel để
   // Splash/OnboardingFlag không kẹt ở getApplicationDocumentsDirectory.
   // Trước khi có mock này, cả 2 test widget đều fail vì màn Onboarding
-  // không bao giờ hiện sau Splash.
+  // không bao giờ hiện sau Splash. Mỗi test có thư mục riêng, xóa ở tearDown,
+  // để cờ onboarding_done của test này không làm lệch test khác.
+  late Directory docs;
   setUp(() {
+    docs = Directory.systemTemp.createTempSync('voicemorph_test');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('plugins.flutter.io/path_provider'),
       (call) async {
         if (call.method == 'getApplicationDocumentsDirectory' ||
             call.method == 'getTemporaryDirectory') {
-          return Directory.systemTemp.path;
+          return docs.path;
         }
         return null;
       },
@@ -33,6 +36,7 @@ void main() {
       const MethodChannel('plugins.flutter.io/path_provider'),
       null,
     );
+    docs.deleteSync(recursive: true);
   });
 
   testWidgets('first run shows onboarding after splash', (tester) async {
@@ -49,7 +53,12 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: VoiceMorphApp()));
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bỏ qua'));
+    // markDone() ghi file thật: trong thời gian giả của testWidgets thao tác
+    // đó không bao giờ xong, nên bấm và chờ trong runAsync.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Bỏ qua'));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
     await tester.pumpAndSettle();
     // Nếu môi trường test trả về "từ chối vĩnh viễn" thì _finish hiện dialog
     // xin mở Cài đặt và chưa sang Home: bấm "Để sau" để đi tiếp.

@@ -91,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 120,
+            height: 140,
             child: presets.when(
               data: (all) {
                 final featured = PresetService.featured(all);
@@ -123,15 +123,42 @@ class HomeScreen extends ConsumerWidget {
                                       : Icons.audiotrack,
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  preset.name('vi'),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                // Flexible + 2 dòng: tên dài như "Người ngoài
+                                // hành tinh" co lại thay vì làm tràn thẻ.
+                                Flexible(
+                                  child: Text(
+                                    preset.name('vi'),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+                                // Nhãn nhỏ thay cho Chip: Chip cao ~48px làm
+                                // tràn thẻ preset.
                                 if (preset.isPro)
-                                  const Chip(label: Text('PRO')),
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'PRO',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
