@@ -51,6 +51,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bỏ qua'));
     await tester.pumpAndSettle();
+    // Nếu môi trường test trả về "từ chối vĩnh viễn" thì _finish hiện dialog
+    // xin mở Cài đặt và chưa sang Home: bấm "Để sau" để đi tiếp.
+    if (find.text('Để sau').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Để sau'));
+      await tester.pumpAndSettle();
+    }
     expect(find.widgetWithText(ElevatedButton, 'Ghi âm'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Thư viện'), findsOneWidget);
   });

@@ -40,10 +40,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => _requesting = true);
     // Lỗi platform channel (kể cả trong test không có mock) cũng không
     // được chặn luồng: coi như chưa cấp quyền, màn Record sẽ hỏi lại.
+    // Timeout cũng vậy: nếu hộp thoại hệ thống/channel treo thì sau 2 giây
+    // vẫn đi tiếp vào Home thay vì kẹt ở Onboarding.
     PermissionStatus? result;
     try {
-      final status = await Permission.microphone.status;
-      result = status.isGranted ? status : await Permission.microphone.request();
+      result = await (() async {
+        final status = await Permission.microphone.status;
+        return status.isGranted ? status : await Permission.microphone.request();
+      })()
+          .timeout(const Duration(seconds: 2), onTimeout: () => null);
     } catch (_) {
       result = null;
     }
