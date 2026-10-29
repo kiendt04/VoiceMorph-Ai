@@ -2,7 +2,7 @@
     <!-- Ghi âm giọng nói để đổi giọng. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:label="voicemorph_ai"
+        android:label="VoiceMorph"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

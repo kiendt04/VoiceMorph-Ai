@@ -7,9 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 VoiceMorph is an offline Flutter app for Android and iOS that changes voices with DSP effects. The product spec, covering MVP scope, monetization, architecture, and the packages it plans to use, is in [00-app-overview.md](00-app-overview.md). It is written in Vietnamese, and the user works in Vietnamese.
 
 Current state:
-- **All working logic is in `packages/voice_core`.** It is a pure Dart package with no Flutter dependency. The only Flutter-specific piece is the `flutter: assets:` entry in its pubspec.
-- The Flutter app (`lib/main.dart`, `test/widget_test.dart`) is still the counter template.
-- The platform audio layer (recording, MP3/M4A decode, playback, MP3/AAC export) and app state (Riverpod, go_router, storage) are not built yet.
+- **The voice-changing logic is in `packages/voice_core`.** It is a pure Dart package with no Flutter dependency. The only Flutter-specific piece is the `flutter: assets:` entry in its pubspec.
+- The Flutter app has a Phase 0 foundation and nothing more (see "App structure" below).
+- The platform audio layer is not built: recording, MP3/M4A decode, playback, and MP3/AAC export. `record`, `just_audio`, `file_picker`, `permission_handler`, `share_plus` and `path_provider` are declared in `pubspec.yaml` but nothing calls them yet.
+- The microphone permission is declared (Android `RECORD_AUDIO`, iOS `NSMicrophoneUsageDescription`), but there is no code that requests it. When an iOS Podfile is added, it needs the `PERMISSION_MICROPHONE=1` macro, or `permission_handler` always reports the permission as denied.
+- Storage, settings, and RevenueCat are not built.
+- Bundle/application ID: `com.kiendt.voicemorph`.
 
 ## Commands
 
@@ -27,6 +30,18 @@ dart test --name "renderFile"               # tests whose name matches
 App (repo root): `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run`.
 
 `voice_changer_test.dart` contains a timing test that requires rendering 60 s of audio in under 5 s. Desktop JIT is only a rough proxy for that target, which is defined for a mid-range phone.
+
+## App structure (`lib/`)
+
+The app code is commented in Vietnamese.
+
+- **`main.dart`** initializes AdMob, then runs `MaterialApp.router` inside a Riverpod `ProviderScope`. The app uses a dark theme only (`core/theme.dart`).
+- **`core/router.dart`** is a single `GoRouter` holding every route from the spec. Only `/` (Home) is a real screen. The others are `PlaceholderScreen`s; replace each one with its real screen at the same path.
+- **`features/<screen>/`** holds screen code. Home is a temporary Phase 0 screen that includes buttons for testing ads.
+- **`services/presets/preset_service.dart`** loads presets from the `voice_core` package asset (`packages/voice_core/assets/...` through `rootBundle`, with no app-level asset entry). It also defines the 5 Home featured IDs.
+- **`services/ads/`** is the only code that touches `google_mobile_ads`.
+  - `AdConfig` uses Google's test IDs while `useTestAds` is true. The test App IDs are also hard-coded in `AndroidManifest.xml` and `Info.plist`, so all three places must change together before release.
+  - `AdService` swallows every ad error, returning null or false, so ads never crash the app.
 
 ## voice_core architecture
 
