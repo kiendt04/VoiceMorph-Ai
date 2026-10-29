@@ -37,6 +37,17 @@ dependencies:
   voice_core:
     path: packages/voice_core
 
+  # Giai đoạn 0: điều hướng, state, quyền mic, ghi/phát âm thanh, file, chia sẻ, quảng cáo.
+  go_router: ^14.0.0
+  flutter_riverpod: ^2.5.0
+  permission_handler: ^11.3.0
+  record: ^6.0.0
+  just_audio: ^0.9.46
+  file_picker: ^8.1.0
+  path_provider: ^2.1.0
+  share_plus: ^10.0.0
+  google_mobile_ads: ^5.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

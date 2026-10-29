@@ -2,7 +2,7 @@
   "presets": [
     {
       "id": "deep_male", "names": { "vi": "Nam trầm", "en": "Deep Male" },
-      "category": "human", "isPro": false, "version": 1,
+      "category": "human", "isPro": true, "version": 1,
       "chain": [
         { "type": "PITCH", "params": { "semitones": -4 } },
         { "type": "LOW_SHELF", "params": { "freq": 150, "gainDb": 3 } },
