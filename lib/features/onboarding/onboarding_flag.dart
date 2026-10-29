@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
@@ -12,7 +13,13 @@ class OnboardingFlag {
 
   static Future<bool> isDone() async {
     try {
-      return (await _file()).existsSync();
+      // Timeout: trong widget test không có plugin path_provider thật nên
+      // channel có thể không bao giờ trả về; không để Splash kẹt ở đây.
+      final file = await _file().timeout(
+        const Duration(milliseconds: 300),
+        onTimeout: () => throw TimeoutException('documents dir timeout'),
+      );
+      return file.existsSync();
     } catch (_) {
       return false;
     }
@@ -20,7 +27,10 @@ class OnboardingFlag {
 
   static Future<void> markDone() async {
     try {
-      final file = await _file();
+      final file = await _file().timeout(
+        const Duration(milliseconds: 300),
+        onTimeout: () => throw TimeoutException('documents dir timeout'),
+      );
       if (!file.existsSync()) await file.create(recursive: true);
     } catch (_) {
       // Không lưu được cờ thì lần sau hiện onboarding lại — không chặn app.
