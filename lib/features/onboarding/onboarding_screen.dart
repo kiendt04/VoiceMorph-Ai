@@ -16,7 +16,7 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pages = const PageController();
+  final _pages = PageController();
   var _page = 0;
   var _requesting = false;
 

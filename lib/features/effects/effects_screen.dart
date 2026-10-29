@@ -119,7 +119,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                           ? Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.25)
+                              .withValues(alpha: 0.25)
                           : null,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),

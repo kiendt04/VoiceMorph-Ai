@@ -127,9 +127,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
   Future<void> _share() async {
     try {
-      await SharePlus.instance.share(
-        ShareParams(files: [XFile(widget.args.renderedPath)]),
-      );
+      // share_plus 10.x (the version pinned in pubspec.lock) uses the
+      // static Share API; SharePlus.instance only exists from 11.0.0.
+      await Share.shareXFiles([XFile(widget.args.renderedPath)]);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
