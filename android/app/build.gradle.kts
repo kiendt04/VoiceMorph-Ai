@@ -19,7 +19,8 @@ android {
         applicationId = "com.kiendt.voicemorph"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Giai đoạn 2: ffmpeg_kit_flutter_new_audio yêu cầu Android API 24+.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

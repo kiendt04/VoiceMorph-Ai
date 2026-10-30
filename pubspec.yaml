@@ -47,6 +47,9 @@ dependencies:
   path_provider: ^2.1.0
   share_plus: ^10.0.0
   google_mobile_ads: ^5.0.0
+  # Giai đoạn 2: giải mã MP3/M4A và mã hóa MP3/M4A. Bản audio (LGPL,
+  # không chứa codec GPL) là đủ vì app chỉ cần codec âm thanh.
+  ffmpeg_kit_flutter_new_audio: ^2.5.3
 
 dev_dependencies:
   flutter_test:

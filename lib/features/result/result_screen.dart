@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../../services/audio/audio_format.dart';
+import '../../services/audio/ffmpeg_service.dart';
 import '../common/providers.dart';
+import '../common/waveform.dart';
 import '../flow/flow_args.dart';
 
 /// Màn Result: nghe đối chiếu Bản gốc / Đã đổi, Lưu vào thư viện,
@@ -33,11 +37,20 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   var _saved = false;
   var _saving = false;
   String? _fadedPath;
+  Float32List? _renderedPeaks;
+  // Giai đoạn 2: xuất MP3/M4A.
+  var _exportFormat = ExportFormat.mp3;
+  var _bitrateKbps = 192;
+  var _exporting = false;
+  String? _exportedPath;
+  ExportFormat? _exportedFormat;
+  int? _exportedBitrate;
 
   @override
   void initState() {
     super.initState();
     _prepareFadedCopy();
+    _loadRenderedPeaks();
   }
 
   @override
@@ -61,6 +74,96 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       if (mounted) setState(() => _fadedPath = fadedPath);
     } catch (_) {
       // Không tạo được bản fade thì phát file gốc — không chặn người dùng.
+    }
+  }
+
+  /// Waveform của bản đã đổi, tính từ PCM thật của file render (WAV).
+  Future<void> _loadRenderedPeaks() async {
+    try {
+      final path = widget.args.renderedPath;
+      final peaks = await Isolate.run(() {
+        final audio = WavIO.readFile(path);
+        return computePeaks(audio.samples, 64);
+      });
+      if (mounted) setState(() => _renderedPeaks = peaks);
+    } catch (_) {
+      // Không vẽ được sóng thì vẫn nghe/lưu/chia sẻ bình thường.
+    }
+  }
+
+  /// Trả về file ở định dạng đã chọn, dùng lại bản xuất trước đó nếu
+  /// người dùng chưa đổi định dạng/bitrate (tránh chạy FFmpeg lại).
+  Future<String?> _export() async {
+    if (_exportedPath != null &&
+        _exportedFormat == _exportFormat &&
+        _exportedBitrate == _bitrateKbps) {
+      return _exportedPath;
+    }
+    setState(() => _exporting = true);
+    try {
+      final path = await AudioTranscoder().encodeFromWav(
+        widget.args.renderedPath,
+        _exportFormat,
+        bitrateKbps: _bitrateKbps,
+      );
+      if (mounted) {
+        setState(() {
+          _exportedPath = path;
+          _exportedFormat = _exportFormat;
+          _exportedBitrate = _bitrateKbps;
+        });
+      }
+      return path;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không xuất được: $e')),
+        );
+      }
+      return null;
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _shareExport() async {
+    final path = await _export();
+    if (path == null || !mounted) return;
+    try {
+      await Share.shareXFiles([XFile(path)]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không chia sẻ được: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveExport() async {
+    final path = await _export();
+    if (path == null || !mounted) return;
+    try {
+      final name =
+          '${widget.args.preset.name('vi')} — ${widget.args.source.name}';
+      await ref.read(libraryProvider.notifier).addRendered(
+            renderedPath: path,
+            originalPath: widget.args.source.path,
+            name: name,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã lưu bản ${_exportFormat.label} vào thư viện.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không lưu được: $e')),
+        );
+      }
     }
   }
 
@@ -192,7 +295,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final preset = widget.args.preset;
     return Scaffold(
       appBar: AppBar(title: const Text('Kết quả')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -202,6 +305,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text('Nguồn: ${widget.args.source.name}'),
+            if (_renderedPeaks != null) ...[
+              const SizedBox(height: 24),
+              WaveformBars(peaks: _renderedPeaks!),
+              const SizedBox(height: 4),
+              const Text(
+                'Sóng âm bản đã đổi (từ PCM thật)',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -259,6 +371,100 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            // Giai đoạn 2: xuất MP3/M4A. WAV là file render gốc, không
+            // cần mã hóa lại. Chọn chất lượng ở đây; màn Settings thật
+            // (mặc định xuất) để Giai đoạn 3, theo kế hoạch.
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Xuất file',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButton<ExportFormat>(
+                            value: _exportFormat,
+                            isExpanded: true,
+                            items: [
+                              for (final format in ExportFormat.values)
+                                DropdownMenuItem(
+                                  value: format,
+                                  child: Text(format.label),
+                                ),
+                            ],
+                            onChanged: _exporting
+                                ? null
+                                : (value) {
+                                    if (value != null) {
+                                      setState(() => _exportFormat = value);
+                                    }
+                                  },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButton<int>(
+                            value: _bitrateKbps,
+                            isExpanded: true,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 128,
+                                child: Text('128 kbps'),
+                              ),
+                              DropdownMenuItem(
+                                value: 192,
+                                child: Text('192 kbps'),
+                              ),
+                              DropdownMenuItem(
+                                value: 320,
+                                child: Text('320 kbps'),
+                              ),
+                            ],
+                            onChanged: _exporting ||
+                                    _exportFormat == ExportFormat.wav
+                                ? null
+                                : (value) {
+                                    if (value != null) {
+                                      setState(() => _bitrateKbps = value);
+                                    }
+                                  },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _exporting ? null : _shareExport,
+                            icon: const Icon(Icons.share),
+                            label: Text(
+                              _exporting ? 'Đang xuất...' : 'Chia sẻ bản xuất',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _exporting ? null : _saveExport,
+                            icon: const Icon(Icons.save),
+                            label: const Text('Lưu bản xuất'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextButton(

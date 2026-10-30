@@ -96,6 +96,9 @@ class LibraryService {
   }
 
   /// Lưu file đã render (kèm file gốc nếu có) vào thư viện, trả về entry mới.
+  /// Giai đoạn 2: giữ đúng đuôi của file được lưu (WAV/MP3/M4A) thay vì
+  /// ép về .wav như Giai đoạn 1 — Library phát lại bằng just_audio nên
+  /// đọc được cả ba định dạng.
   Future<LibraryEntry> addRendered({
     required String renderedPath,
     String? originalPath,
@@ -103,11 +106,11 @@ class LibraryService {
   }) async {
     final dir = await _libraryDir;
     final stamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'vm_$stamp.wav';
+    final fileName = 'vm_$stamp.${_extension(renderedPath)}';
     await File(renderedPath).copy('${dir.path}/$fileName');
     String? originalFileName;
     if (originalPath != null && File(originalPath).existsSync()) {
-      originalFileName = 'vm_${stamp}_orig.wav';
+      originalFileName = 'vm_${stamp}_orig.${_extension(originalPath)}';
       await File(originalPath).copy('${dir.path}/$originalFileName');
     }
     final entry = LibraryEntry(
@@ -153,6 +156,14 @@ class LibraryService {
     }
     entries.removeAt(index);
     await _saveIndex(entries);
+  }
+
+  String _extension(String path) {
+    final name = path.split('/').last;
+    final dot = name.lastIndexOf('.');
+    if (dot < 0) return 'wav';
+    final ext = name.substring(dot + 1).toLowerCase();
+    return ext.isEmpty ? 'wav' : ext;
   }
 
   /// Đường dẫn tuyệt đối của file đã render của một entry.

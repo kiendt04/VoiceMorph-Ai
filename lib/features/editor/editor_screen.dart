@@ -9,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../common/waveform.dart';
 import '../flow/flow_args.dart';
 
 /// Thông tin nguồn đọc một lần ở isolate (tránh đọc file lớn trên UI).
@@ -165,27 +166,10 @@ class _EditorScreenState extends State<EditorScreen> {
                             'Độ dài: ${(source.totalSamples / source.sampleRate).toStringAsFixed(1)} giây',
                           ),
                           const SizedBox(height: 12),
-                          // Waveform tĩnh từ PCM thật (64 cột).
-                          SizedBox(
-                            height: 64,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                for (final peak in source.peaks)
-                                  Expanded(
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 1,
-                                      ),
-                                      height: 4 + peak.clamp(0.0, 1.0) * 56,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                          // Waveform từ PCM thật (64 cột). Nguồn MP3/M4A
+                          // đã được giải mã về WAV ở Home nên đọc thẳng
+                          // bằng WavIO như trước.
+                          WaveformBars(peaks: source.peaks),
                         ],
                       ),
                     ),

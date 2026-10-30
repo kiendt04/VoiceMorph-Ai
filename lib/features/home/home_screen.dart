@@ -4,29 +4,61 @@ import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../services/ads/ad_service.dart';
+import '../../services/audio/ffmpeg_service.dart';
 import '../../services/presets/preset_service.dart';
 import '../common/providers.dart';
 import '../flow/flow_args.dart';
 
-/// Màn Home thật (Giai đoạn 1): nút Ghi âm ngay, Import file WAV, 5 preset
-/// nổi bật, bản ghi gần đây từ Library, banner quảng cáo test ở cuối.
+/// Màn Home thật (Giai đoạn 1 + 2): nút Ghi âm ngay, Import WAV/MP3/M4A,
+/// 5 preset nổi bật, bản ghi gần đây từ Library, banner quảng cáo test.
 /// Bấm preset khi chưa có nguồn -> sang màn Effects, màn đó sẽ nhắc ghi/import.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   Future<void> _import(BuildContext context) async {
-    // Giai đoạn 1 chỉ nhận WAV; MP3/M4A để Giai đoạn 2 (cần FFmpeg).
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['wav'],
+      allowedExtensions: ['wav', 'mp3', 'm4a'],
     );
     final path = result?.files.single.path;
     if (path == null) return;
     final name = path.split('/').last;
+    // MP3/M4A cần giải mã về WAV tạm trước khi vào luồng (voice_core
+    // chỉ đọc WAV). Hiện dialog chờ vì bước này có thể mất vài giây
+    // với file dài; WAV đi thẳng nên dialog chỉ chớp qua.
     if (context.mounted) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    String decodedPath;
+    try {
+      decodedPath = await AudioTranscoder().decodeToWav(path);
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không import được: $e'),
+            action: SnackBarAction(
+              label: 'Thử lại',
+              onPressed: () => _import(context),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (context.mounted) {
+      Navigator.of(context).pop();
+      // Giữ tên file gốc để hiển thị; path bên trong là WAV đã giải mã.
       context.push(
         '/effects',
-        extra: EffectsArgs(source: SourceArgs(path: path, name: name)),
+        extra: EffectsArgs(source: SourceArgs(path: decodedPath, name: name)),
       );
     }
   }
