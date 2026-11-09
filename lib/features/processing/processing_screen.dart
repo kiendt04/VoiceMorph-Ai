@@ -141,7 +141,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
             const SizedBox(height: 12),
             Text('${(_progress * 100).toStringAsFixed(0)}%'),
             const SizedBox(height: 8),
-            Text('${s.t('processingPreset')}: ${widget.args.preset.name('vi')}'),
+            Text('${s.t('processingPreset')}: ${widget.args.preset.name(s.locale.languageCode)}'),
             const SizedBox(height: 24),
             OutlinedButton(
               onPressed: _cancel,

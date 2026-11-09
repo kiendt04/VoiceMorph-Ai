@@ -189,7 +189,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 // hành tinh" co lại thay vì làm tràn thẻ.
                                 Flexible(
                                   child: Text(
-                                    preset.name('vi'),
+                                    preset.name(s.locale.languageCode),
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,

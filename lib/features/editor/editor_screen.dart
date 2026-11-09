@@ -151,7 +151,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final preset = widget.args.preset;
     final source = _source;
     return Scaffold(
-      appBar: AppBar(title: Text('${s.t('editorTitle')}: ${preset.name('vi')}')),
+      appBar: AppBar(title: Text('${s.t('editorTitle')}: ${preset.name(s.locale.languageCode)}')),
       body: _loadError != null
           ? Center(child: Text(_loadError!))
           : source == null

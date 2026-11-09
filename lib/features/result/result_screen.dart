@@ -171,7 +171,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       final path = await _export();
       if (path == null || !mounted) return;
       final name =
-          '${widget.args.preset.name('vi')} — ${widget.args.source.name}';
+          '${widget.args.preset.name(AppLocalizations.of(context).locale.languageCode)} — ${widget.args.source.name}';
       await ref.read(libraryProvider.notifier).addRendered(
             renderedPath: path,
             originalPath: widget.args.source.path,
@@ -294,7 +294,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              preset.name('vi'),
+              preset.name(s.locale.languageCode),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text('${s.t('resultSource')}: ${widget.args.source.name}'),

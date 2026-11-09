@@ -143,7 +143,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                preset.name('vi'),
+                                preset.name(s.locale.languageCode),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
