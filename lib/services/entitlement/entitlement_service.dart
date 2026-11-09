@@ -58,6 +58,9 @@ class EntitlementService {
   bool get adsEnabled => !isPurchased;
 }
 
-final entitlementProvider = Provider<EntitlementService>(
-  (ref) => EntitlementService(ref),
-);
+final entitlementProvider = Provider<EntitlementService>((ref) {
+  // watch để màn nào watch entitlementProvider (lưới Effects, Paywall)
+  // cũng vẽ lại khi settings đổi, ví dụ vừa mở tạm preset bằng rewarded.
+  ref.watch(settingsProvider);
+  return EntitlementService(ref);
+});

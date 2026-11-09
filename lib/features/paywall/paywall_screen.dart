@@ -46,7 +46,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(s.t('paywallRewardedDone'))),
     );
-    context.push(
+    // Thay Paywall bằng Editor: Back từ Editor về thẳng màn Effects,
+    // không quay lại Paywall nữa.
+    context.pushReplacement(
       '/editor',
       extra: EditorArgs(source: source, preset: preset),
     );
@@ -58,7 +60,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final preset = widget.args?.preset;
     final expiry = preset == null
         ? null
-        : ref.read(entitlementProvider).rewardedUnlockExpiry(preset);
+        : ref.watch(entitlementProvider).rewardedUnlockExpiry(preset);
     return Scaffold(
       appBar: AppBar(title: Text(s.t('paywallTitle'))),
       body: Padding(
