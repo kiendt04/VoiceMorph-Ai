@@ -9,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../../core/strings.dart';
 import '../common/waveform.dart';
 import '../flow/flow_args.dart';
 
@@ -74,7 +75,7 @@ class _EditorScreenState extends State<EditorScreen> {
       });
       if (mounted) setState(() => _source = info);
     } catch (e) {
-      if (mounted) setState(() => _loadError = 'Không đọc được file nguồn: $e');
+      if (mounted) setState(() => _loadError = '${AppLocalizations.of(context).t('editorLoadFailed')}: $e');
     }
   }
 
@@ -124,7 +125,7 @@ class _EditorScreenState extends State<EditorScreen> {
     } catch (e) {
       if (mounted && token == _previewToken) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không nghe thử được: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('editorPreviewFailed')}: $e')),
         );
       }
     } finally {
@@ -146,10 +147,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
     final preset = widget.args.preset;
     final source = _source;
     return Scaffold(
-      appBar: AppBar(title: Text('Chỉnh: ${preset.name('vi')}')),
+      appBar: AppBar(title: Text('${s.t('editorTitle')}: ${preset.name('vi')}')),
       body: _loadError != null
           ? Center(child: Text(_loadError!))
           : source == null
@@ -161,9 +163,9 @@ class _EditorScreenState extends State<EditorScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Nguồn: ${widget.args.source.name}'),
+                          Text('${s.t('editorSource')}: ${widget.args.source.name}'),
                           Text(
-                            'Độ dài: ${(source.totalSamples / source.sampleRate).toStringAsFixed(1)} giây',
+                            '${s.t('editorDuration')}: ${(source.totalSamples / source.sampleRate).toStringAsFixed(1)} ${s.t('editorSeconds')}',
                           ),
                           const SizedBox(height: 12),
                           // Waveform từ PCM thật (64 cột). Nguồn MP3/M4A
@@ -206,9 +208,7 @@ class _EditorScreenState extends State<EditorScreen> {
                               ],
                             ),
                           if (preset.controls.isEmpty)
-                            const Text(
-                              'Preset này không có thanh trượt — dùng nguyên bản thiết kế của preset.',
-                            ),
+                            Text(s.t('editorNoControls')),
                         ],
                       ),
                     ),
@@ -224,10 +224,10 @@ class _EditorScreenState extends State<EditorScreen> {
                               ),
                               label: Text(
                                 _previewBusy
-                                    ? 'Đang tạo bản nghe thử...'
+                                    ? s.t('editorPreviewBusy')
                                     : _playing
-                                        ? 'Dừng nghe thử'
-                                        : 'Nghe thử 10 giây',
+                                        ? s.t('editorPreviewStop')
+                                        : s.t('editorPreview'),
                               ),
                             ),
                           ),
@@ -247,7 +247,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
                                 );
                               },
-                              child: const Text('Xử lý toàn file'),
+                              child: Text(s.t('editorProcess')),
                             ),
                           ),
                         ],

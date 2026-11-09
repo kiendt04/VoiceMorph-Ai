@@ -56,6 +56,13 @@ class LibraryNotifier extends StateNotifier<List<LibraryEntry>> {
     await _reload();
   }
 
+  /// Xóa toàn bộ thư viện (màn Settings): xóa file + index rồi tải lại
+  /// danh sách trống. Cài đặt và trạng thái PRO không bị động vào.
+  Future<void> deleteAllLocal() async {
+    await _service.clearAll();
+    await _reload();
+  }
+
   Future<String> filePath(LibraryEntry entry) => _service.filePath(entry);
 }
 

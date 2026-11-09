@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/strings.dart';
 import 'onboarding_flag.dart';
 
 /// Onboarding 3 trang + xin quyền mic ở trang cuối.
@@ -20,14 +21,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   var _page = 0;
   var _requesting = false;
 
-  static const _slides = [
-    (Icons.mic, 'Ghi âm dễ dàng',
-        'Bấm nút, nói vài câu — app ghi lại giọng của bạn ngay trên máy.'),
-    (Icons.tune, 'Hàng loạt hiệu ứng vui',
-        'Robot, Alien, Nam trầm, Trẻ em, Ma quái... và còn nhiều nữa.'),
-    (Icons.share, 'Lưu và chia sẻ',
-        'Nghe đối chiếu bản gốc và bản đã đổi, rồi lưu vào thư viện hoặc chia sẻ cho bạn bè.'),
-  ];
+  // Tiêu đề/nội dung slide lấy theo ngôn ngữ trong build (không để
+  // const vì AppLocalizations cần BuildContext).
+  List<(IconData, String, String)> _slides(AppLocalizations s) => [
+        (Icons.mic, s.t('onboardingSlide1Title'), s.t('onboardingSlide1Body')),
+        (Icons.tune, s.t('onboardingSlide2Title'), s.t('onboardingSlide2Body')),
+        (Icons.share, s.t('onboardingSlide3Title'), s.t('onboardingSlide3Body')),
+      ];
 
   @override
   void dispose() {
@@ -36,6 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
+    final s = AppLocalizations.of(context);
     if (_requesting) return;
     setState(() => _requesting = true);
     // Lỗi platform channel (kể cả trong test không có mock) cũng không
@@ -54,21 +55,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         await showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Cần quyền micro'),
-            content: const Text(
-              'VoiceMorph cần micro để ghi âm. Bạn có thể bật lại bất cứ lúc nào trong Cài đặt.',
-            ),
+            title: Text(s.t('onboardingMicTitle')),
+            content: Text(s.t('onboardingMicBody')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Để sau'),
+                child: Text(s.t('later')),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   openAppSettings();
                 },
-                child: const Text('Mở Cài đặt'),
+                child: Text(s.t('recordOpenSettings')),
               ),
             ],
           ),
@@ -81,11 +80,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final last = _page == _slides.length - 1;
+    final s = AppLocalizations.of(context);
+    final slides = _slides(s);
+    final last = _page == slides.length - 1;
     return Scaffold(
       appBar: AppBar(
         actions: [
-          TextButton(onPressed: _finish, child: const Text('Bỏ qua')),
+          TextButton(onPressed: _finish, child: Text(s.t('onboardingSkip'))),
         ],
       ),
       body: Column(
@@ -93,10 +94,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Expanded(
             child: PageView.builder(
               controller: _pages,
-              itemCount: _slides.length,
+              itemCount: slides.length,
               onPageChanged: (i) => setState(() => _page = i),
               itemBuilder: (context, index) {
-                final (icon, title, body) = _slides[index];
+                final (icon, title, body) = slides[index];
                 return Padding(
                   padding: const EdgeInsets.all(32),
                   child: Column(
@@ -127,7 +128,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var i = 0; i < _slides.length; i++)
+              for (var i = 0; i < slides.length; i++)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: i == _page ? 24 : 8,
@@ -158,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           );
                         }
                       },
-                child: Text(last ? 'Bắt đầu' : 'Tiếp'),
+                child: Text(last ? s.t('onboardingStart') : s.t('onboardingNext')),
               ),
             ),
           ),

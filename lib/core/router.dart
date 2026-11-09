@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/ai_voices/ai_voices_screen.dart';
 import '../features/editor/editor_screen.dart';
 import '../features/effects/effects_screen.dart';
 import '../features/flow/flow_args.dart';
@@ -8,11 +9,15 @@ import '../features/home/home_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/splash_screen.dart';
+import '../features/paywall/paywall_screen.dart';
 import '../features/processing/processing_screen.dart';
 import '../features/record/record_screen.dart';
+import '../features/responsible_use/responsible_use_screen.dart';
 import '../features/result/result_screen.dart';
+import '../features/settings/settings_screen.dart';
 
-/// Màn hình giữ chỗ cho các route chưa dựng (Settings, Paywall — Giai đoạn 3).
+/// Màn hình giữ chỗ cho các route chưa dựng (chỉ còn dùng cho lỗi thiếu
+/// dữ liệu luồng — Settings/Paywall đã dựng thật ở Giai đoạn 3).
 class PlaceholderScreen extends StatelessWidget {
   const PlaceholderScreen({super.key, required this.title});
 
@@ -96,11 +101,21 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) => const PlaceholderScreen(title: 'Settings'),
+      builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
       path: '/paywall',
-      builder: (context, state) => const PlaceholderScreen(title: 'Paywall'),
+      builder: (context, state) => PaywallScreen(
+        args: state.extra as PaywallArgs?,
+      ),
+    ),
+    GoRoute(
+      path: '/responsible-use',
+      builder: (context, state) => const ResponsibleUseScreen(),
+    ),
+    GoRoute(
+      path: '/ai-voices',
+      builder: (context, state) => const AiVoicesScreen(),
     ),
   ],
 );

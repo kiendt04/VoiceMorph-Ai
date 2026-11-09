@@ -7,6 +7,46 @@ class AppTheme {
   static const _accent = Color(0xFF7C6CFF);
   static const _accentSecondary = Color(0xFF38BDF8);
 
+  /// Theme sáng (Giai đoạn 3): cùng màu nhấn tím/xanh với theme tối,
+  /// nền và card sáng để đọc được ngoài trời.
+  static ThemeData get light {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: _accent,
+      brightness: Brightness.light,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme.copyWith(secondary: _accentSecondary),
+      scaffoldBackgroundColor: const Color(0xFFF6F6FB),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF6F6FB),
+        elevation: 0,
+        centerTitle: false,
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   static ThemeData get dark {
     final scheme = ColorScheme.fromSeed(
       seedColor: _accent,

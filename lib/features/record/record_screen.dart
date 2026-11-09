@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
+import '../../core/strings.dart';
 import '../flow/flow_args.dart';
 
 /// Màn ghi âm: ghi WAV 44.1kHz mono, đếm thời gian, sóng âm trực tiếp từ
@@ -38,6 +39,7 @@ class _RecordScreenState extends State<RecordScreen> {
   }
 
   Future<void> _start() async {
+    final s = AppLocalizations.of(context);
     setState(() {
       _busy = true;
       _error = null;
@@ -51,13 +53,13 @@ class _RecordScreenState extends State<RecordScreen> {
         if (status.isPermanentlyDenied && mounted) {
           await _showDeniedDialog();
         } else if (mounted) {
-          setState(() => _error = 'Chưa có quyền micro nên chưa ghi được.');
+          setState(() => _error = s.t('recordNoMic'));
         }
         return;
       }
       if (!await _recorder.hasPermission()) {
         if (mounted) {
-          setState(() => _error = 'Thiết bị không cho phép ghi âm lúc này.');
+          setState(() => _error = s.t('recordNotAllowed'));
         }
         return;
       }
@@ -90,31 +92,30 @@ class _RecordScreenState extends State<RecordScreen> {
       });
     } catch (e) {
       // Mất quyền giữa chừng hoặc mic bận: báo rõ, không crash.
-      if (mounted) setState(() => _error = 'Không ghi được: $e');
+      if (mounted) setState(() => _error = '${s.t('recordFailed')}: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _showDeniedDialog() async {
+    final s = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cần quyền micro'),
-        content: const Text(
-          'Quyền micro đã bị từ chối vĩnh viễn. Mở Cài đặt để bật lại nhé.',
-        ),
+        title: Text(s.t('recordNeedMicTitle')),
+        content: Text(s.t('recordNeedMicBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Để sau'),
+            child: Text(s.t('later')),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               openAppSettings();
             },
-            child: const Text('Mở Cài đặt'),
+            child: Text(s.t('recordOpenSettings')),
           ),
         ],
       ),
@@ -122,6 +123,7 @@ class _RecordScreenState extends State<RecordScreen> {
   }
 
   Future<void> _stop({bool keep = true}) async {
+    final s = AppLocalizations.of(context);
     _timer?.cancel();
     await _amplitudeSub?.cancel();
     _amplitudeSub = null;
@@ -129,7 +131,7 @@ class _RecordScreenState extends State<RecordScreen> {
     try {
       path = await _recorder.stop();
     } catch (e) {
-      if (mounted) setState(() => _error = 'Không dừng được bản ghi: $e');
+      if (mounted) setState(() => _error = '${s.t('recordStopFailed')}: $e');
     }
     if (!mounted) return;
     setState(() {
@@ -140,7 +142,10 @@ class _RecordScreenState extends State<RecordScreen> {
       context.push(
         '/effects',
         extra: EffectsArgs(
-          source: SourceArgs(path: path, name: 'Bản ghi $_seconds giây'),
+          source: SourceArgs(
+            path: path,
+            name: s.t('recordName', {'s': '$_seconds'}),
+          ),
         ),
       );
     }
@@ -154,8 +159,9 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Ghi âm')),
+      appBar: AppBar(title: Text(s.t('recordTitle'))),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -189,9 +195,7 @@ class _RecordScreenState extends State<RecordScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _recording
-                  ? 'Đang ghi... bấm Dừng khi nói xong'
-                  : 'Bấm nút mic để bắt đầu ghi',
+              _recording ? s.t('recordRecording') : s.t('recordIdle'),
               textAlign: TextAlign.center,
             ),
             if (_error != null) ...[
@@ -206,12 +210,12 @@ class _RecordScreenState extends State<RecordScreen> {
                   ElevatedButton.icon(
                     onPressed: () => _stop(),
                     icon: const Icon(Icons.stop),
-                    label: const Text('Dừng'),
+                    label: Text(s.t('recordStop')),
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton(
                     onPressed: () => _stop(keep: false),
-                    child: const Text('Hủy bản ghi'),
+                    child: Text(s.t('recordDiscard')),
                   ),
                 ],
               )
@@ -219,7 +223,7 @@ class _RecordScreenState extends State<RecordScreen> {
               ElevatedButton.icon(
                 onPressed: _busy ? null : _start,
                 icon: const Icon(Icons.mic),
-                label: const Text('Bắt đầu ghi'),
+                label: Text(s.t('recordStart')),
               ),
           ],
         ),

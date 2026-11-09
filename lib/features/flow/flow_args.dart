@@ -41,6 +41,16 @@ class ProcessingArgs {
   final Map<String, double> controlValues;
 }
 
+/// Vào màn Paywall: preset PRO người dùng vừa bấm (+ nguồn để quay lại
+/// FineTune sau khi mở tạm bằng rewarded). Cả hai đều null khi mở Paywall
+/// chung (không gắn với preset nào).
+class PaywallArgs {
+  const PaywallArgs({this.preset, this.source});
+
+  final EffectPreset? preset;
+  final SourceArgs? source;
+}
+
 /// Vào màn Result: nguồn gốc + file đã render + preset đã dùng.
 class ResultArgs {
   const ResultArgs({

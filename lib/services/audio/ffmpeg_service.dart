@@ -4,6 +4,7 @@ import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/return_code.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/strings.dart';
 import 'audio_format.dart';
 
 /// Cầu nối duy nhất giữa app và FFmpeg (bản audio, LGPL, không chứa
@@ -14,26 +15,30 @@ import 'audio_format.dart';
 /// - Xuất: WAV đã render -> MP3 (libmp3lame) hoặc M4A (AAC native).
 /// - WAV đi thẳng, không qua FFmpeg, để tránh mã hóa lại không cần thiết.
 class AudioTranscoder {
+  const AudioTranscoder({this.languageCode = 'vi'});
+
+  /// Ngôn ngữ cho thông báo lỗi hiện cho người dùng ('vi' | 'en').
+  /// Màn hình gọi sẽ truyền ngôn ngữ từ Settings; mặc định 'vi'.
+  final String languageCode;
+
+  String _msg(String key, [Map<String, String>? params]) =>
+      AppStrings.lookup(languageCode, key, params);
   /// Giải mã [inputPath] về một file WAV tạm. WAV trả về chính đường dẫn
   /// gốc (không copy). File hỏng / codec lạ -> [AudioFormatException]
   /// với thông báo người dùng hiểu được, kèm gợi ý thử lại.
   Future<String> decodeToWav(String inputPath) async {
     final input = File(inputPath);
     if (!input.existsSync()) {
-      throw const AudioFormatException(
-        'Không tìm thấy file vừa chọn. Chọn lại file khác nhé.',
-      );
+      throw AudioFormatException(_msg('ffmpegFileNotFound'));
     }
     if (input.lengthSync() == 0) {
-      throw const AudioFormatException(
-        'File vừa chọn rỗng (0 byte), không giải mã được.',
-      );
+      throw AudioFormatException(_msg('ffmpegFileEmpty'));
     }
     final ext = fileExtension(inputPath);
     if (ext == 'wav') return inputPath;
     if (!supportedImportExtensions.contains(ext)) {
       throw AudioFormatException(
-        'Định dạng .$ext chưa hỗ trợ. App nhận WAV, MP3 và M4A.',
+        _msg('ffmpegUnsupportedFormat', {'ext': ext}),
       );
     }
     final temp = await getTemporaryDirectory();
@@ -46,8 +51,7 @@ class AudioTranscoder {
     await _run(
       '-y -i ${_quote(inputPath)} -vn -ac 1 -ar 44100 -f wav ${_quote(output)}',
       output,
-      'Không giải mã được file này. File có thể đã hỏng hoặc dùng codec '
-      'không hỗ trợ — thử file khác hoặc xuất lại file từ app gốc nhé.',
+      _msg('ffmpegDecodeFailed'),
       minSize: 45, // WAV hợp lệ phải dài hơn header 44 byte.
     );
     return output;
@@ -63,9 +67,7 @@ class AudioTranscoder {
     if (format == ExportFormat.wav) return wavPath;
     final input = File(wavPath);
     if (!input.existsSync() || input.lengthSync() == 0) {
-      throw const AudioFormatException(
-        'Chưa có file đã render để xuất. Xử lý lại một bản rồi xuất nhé.',
-      );
+      throw AudioFormatException(_msg('ffmpegNoRendered'));
     }
     final temp = await getTemporaryDirectory();
     final dir = Directory('${temp.path}/exports');
@@ -76,8 +78,7 @@ class AudioTranscoder {
     await _run(
       '-y -i ${_quote(wavPath)} -vn -c:a $codec -b:a ${bitrateKbps}k ${_quote(output)}',
       output,
-      'Không xuất được file ${format.extension.toUpperCase()}. Kiểm tra '
-      'dung lượng trống còn lại rồi thử lại nhé.',
+      _msg('ffmpegEncodeFailed', {'fmt': format.extension.toUpperCase()}),
     );
     return output;
   }

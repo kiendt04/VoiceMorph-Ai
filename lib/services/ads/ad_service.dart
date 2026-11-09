@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../core/strings.dart';
 import 'ad_config.dart';
 
 /// Điểm duy nhất trong app được phép chạm vào SDK AdMob.
@@ -177,9 +178,11 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
     final ad = _ad;
     if (ad == null) {
       // Giữ chỗ cho bản dev: ở bản release có thể thay bằng SizedBox.shrink().
-      return const SizedBox(
+      return SizedBox(
         height: 50,
-        child: Center(child: Text('Quảng cáo banner (đang tải / không có quảng cáo)')),
+        child: Center(
+          child: Text(AppLocalizations.of(context).t('adsBannerPlaceholder')),
+        ),
       );
     }
     return SizedBox(

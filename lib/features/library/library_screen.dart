@@ -3,11 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../core/strings.dart';
+import '../../services/ads/ad_service.dart';
+import '../../services/entitlement/entitlement_service.dart';
 import '../../services/library/library_service.dart';
 import '../common/providers.dart';
 
 /// Màn Library: danh sách bản đã lưu, tìm kiếm, đổi tên, xóa, yêu thích.
 /// Bấm vào một bản để nghe thử bản đã đổi đó. Chưa có bản nào -> màn Empty.
+/// Banner quảng cáo ở cuối màn này (Giai đoạn 3, theo báo cáo ads), chỉ
+/// hiện khi chưa mua PRO.
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
@@ -56,24 +61,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Future<void> _rename(LibraryEntry entry) async {
+    final s = AppLocalizations.of(context);
     final controller = TextEditingController(text: entry.name);
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Đổi tên'),
+        title: Text(s.t('libraryRenameTitle')),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Tên bản ghi'),
+          decoration: InputDecoration(hintText: s.t('libraryRenameHint')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Hủy'),
+            child: Text(s.t('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Lưu'),
+            child: Text(s.t('save')),
           ),
         ],
       ),
@@ -84,19 +90,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Future<void> _delete(LibraryEntry entry) async {
+    final s = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa bản này?'),
-        content: Text('“${entry.name}” sẽ bị xóa khỏi thư viện và khỏi máy.'),
+        title: Text(s.t('libraryDeleteTitle')),
+        content: Text(s.t('libraryDeleteBody', {'n': entry.name})),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Giữ lại'),
+            child: Text(s.t('keep')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Xóa'),
+            child: Text(s.t('delete')),
           ),
         ],
       ),
@@ -108,22 +115,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
     final entries = ref.watch(libraryProvider);
+    final adsEnabled = ref.watch(entitlementProvider).adsEnabled;
     final filtered = entries.where((e) {
       if (_query.isEmpty) return true;
       return e.name.toLowerCase().contains(_query);
     }).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Thư viện')),
+      appBar: AppBar(title: Text(s.t('libraryTitle'))),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Tìm trong thư viện...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
+              decoration: InputDecoration(
+                hintText: s.t('librarySearchHint'),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(16)),
                 ),
               ),
@@ -138,20 +147,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       children: [
                         const Icon(Icons.folder_open, size: 64),
                         const SizedBox(height: 16),
-                        const Text('Thư viện trống'),
-                        const Text(
-                          'Ghi âm và đổi giọng một bản rồi lưu lại nhé.',
-                        ),
+                        Text(s.t('libraryEmptyTitle')),
+                        Text(s.t('libraryEmptyBody')),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => context.push('/record'),
-                          child: const Text('Ghi âm ngay'),
+                          child: Text(s.t('libraryRecordNow')),
                         ),
                       ],
                     ),
                   )
                 : filtered.isEmpty
-                    ? const Center(child: Text('Không tìm thấy bản nào.'))
+                    ? Center(child: Text(s.t('libraryNotFound')))
                     : ListView.builder(
                         padding:
                             const EdgeInsets.symmetric(horizontal: 16),
@@ -169,7 +176,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               title: Text(entry.name),
                               subtitle: Text(
                                 '${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}'
-                                '${entry.favorite ? ' • Yêu thích' : ''}',
+                                '${entry.favorite ? ' • ${s.t('libraryFavorite')}' : ''}',
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -183,7 +190,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                     onPressed: () => ref
                                         .read(libraryProvider.notifier)
                                         .toggleFavorite(entry.id),
-                                    tooltip: 'Yêu thích',
+                                    tooltip: s.t('libraryFavorite'),
                                   ),
                                   PopupMenuButton<String>(
                                     onSelected: (value) {
@@ -193,14 +200,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                         _delete(entry);
                                       }
                                     },
-                                    itemBuilder: (context) => const [
+                                    itemBuilder: (context) => [
                                       PopupMenuItem(
                                         value: 'rename',
-                                        child: Text('Đổi tên'),
+                                        child: Text(s.t('libraryRenameTitle')),
                                       ),
                                       PopupMenuItem(
                                         value: 'delete',
-                                        child: Text('Xóa'),
+                                        child: Text(s.t('delete')),
                                       ),
                                     ],
                                   ),
@@ -212,6 +219,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         },
                       ),
           ),
+          // Banner ở cuối màn Library (Giai đoạn 3); mua PRO thì ẩn hẳn.
+          if (adsEnabled) const AdBannerWidget(),
         ],
       ),
     );

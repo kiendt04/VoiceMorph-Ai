@@ -47,6 +47,11 @@ dependencies:
   path_provider: ^2.1.0
   share_plus: ^10.0.0
   google_mobile_ads: ^5.0.0
+  # Giai đoạn 3: lưu cài đặt + quyền PRO tạm thời trên máy (không có
+  # thanh toán thật ở giai đoạn này — mua PRO để sau, theo ý sếp).
+  shared_preferences: ^2.3.0
+  flutter_localizations:
+    sdk: flutter
   # Giai đoạn 2: giải mã MP3/M4A và mã hóa MP3/M4A. Bản audio (LGPL,
   # không chứa codec GPL) là đủ vì app chỉ cần codec âm thanh.
   # Khóa cứng 2.5.7 (bản sếp đã resolve ngày 2026-11-09): ở bản này

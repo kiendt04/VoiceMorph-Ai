@@ -3,19 +3,46 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../services/ads/ad_service.dart';
+import '../../core/strings.dart';
 import '../../services/audio/ffmpeg_service.dart';
 import '../../services/presets/preset_service.dart';
+import '../../services/settings/settings_service.dart';
 import '../common/providers.dart';
 import '../flow/flow_args.dart';
+import '../responsible_use/responsible_use_screen.dart';
 
-/// Màn Home thật (Giai đoạn 1 + 2): nút Ghi âm ngay, Import WAV/MP3/M4A,
-/// 5 preset nổi bật, bản ghi gần đây từ Library, banner quảng cáo test.
+/// Màn Home thật (Giai đoạn 1 + 2, dọn quảng cáo + ResponsibleUse ở
+/// Giai đoạn 3): nút Ghi âm ngay, Import WAV/MP3/M4A, 5 preset nổi bật,
+/// bản ghi gần đây từ Library, lối vào Giọng AI (sắp ra mắt).
+/// Banner quảng cáo đã chuyển sang màn Library (theo báo cáo ads).
 /// Bấm preset khi chưa có nguồn -> sang màn Effects, màn đó sẽ nhắc ghi/import.
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  var _responsibleUseChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Hiện màn Sử dụng có trách nhiệm một lần ở lần đầu mở Home sau
+    // onboarding (đợi khung hình đầu vẽ xong rồi mới hiện dialog).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_responsibleUseChecked || !mounted) return;
+      _responsibleUseChecked = true;
+      final accepted = ref.read(settingsProvider).responsibleUseAccepted;
+      if (!accepted && mounted) {
+        await showResponsibleUseDialog(context, ref);
+      }
+    });
+  }
+
   Future<void> _import(BuildContext context) async {
+    final s = AppLocalizations.of(context);
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['wav', 'mp3', 'm4a'],
@@ -37,15 +64,17 @@ class HomeScreen extends ConsumerWidget {
     }
     String decodedPath;
     try {
-      decodedPath = await AudioTranscoder().decodeToWav(path);
+      decodedPath = await AudioTranscoder(
+        languageCode: ref.read(settingsProvider).language,
+      ).decodeToWav(path);
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không import được: $e'),
+            content: Text('${s.t('homeImportFailed')}: $e'),
             action: SnackBarAction(
-              label: 'Thử lại',
+              label: s.t('retry'),
               onPressed: () => _import(context),
             ),
           ),
@@ -64,18 +93,19 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
     final presets = ref.watch(presetListProvider);
     final library = ref.watch(libraryProvider);
     final recent = library.take(3).toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VoiceMorph'),
+        title: Text(s.t('appTitle')),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => context.go('/settings'),
-            tooltip: 'Cài đặt',
+            tooltip: s.t('homeSettings'),
           ),
         ],
       ),
@@ -89,7 +119,7 @@ class HomeScreen extends ConsumerWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => context.go('/record'),
                     icon: const Icon(Icons.mic),
-                    label: const Text('Ghi âm'),
+                    label: Text(s.t('homeRecord')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -97,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => _import(context),
                     icon: const Icon(Icons.file_upload),
-                    label: const Text('Import file'),
+                    label: Text(s.t('homeImport')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -105,19 +135,19 @@ class HomeScreen extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => context.go('/library'),
                     icon: const Icon(Icons.folder),
-                    label: const Text('Thư viện'),
+                    label: Text(s.t('homeLibrary')),
                   ),
                 ),
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Hiệu ứng nổi bật',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                s.t('homeFeatured'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -202,30 +232,41 @@ class HomeScreen extends ConsumerWidget {
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
-                child: Text('Không tải được preset: $error'),
+                child: Text('${s.t('effectsLoadFailed')}: $error'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Card(
+              child: ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: Text(s.t('homeAiVoices')),
+                subtitle: Text(s.t('homeAiVoicesSub')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/ai-voices'),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Gần đây',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                s.t('homeRecent'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           Expanded(
             child: recent.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(16),
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Align(
                       alignment: Alignment.topLeft,
-                      child: Text(
-                        'Chưa có bản nào. Ghi âm và lưu một bản để thấy ở đây.',
-                      ),
+                      child: Text(s.t('homeEmpty')),
                     ),
                   )
                 : ListView.builder(
@@ -246,7 +287,6 @@ class HomeScreen extends ConsumerWidget {
                     },
                   ),
           ),
-          const AdBannerWidget(),
         ],
       ),
     );

@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../../core/strings.dart';
+import '../../services/entitlement/entitlement_service.dart';
 import '../common/providers.dart';
 import '../flow/flow_args.dart';
 
 /// Màn chọn hiệu ứng: lưới 12 preset + tìm kiếm.
 /// - Preset thường -> sang FineTune.
-/// - Preset PRO -> sang Paywall (chưa gắn thanh toán thật ở Giai đoạn 1).
+/// - Preset PRO chưa mở -> sang Paywall (Giai đoạn 3: chưa có mua thật,
+///   mở tạm bằng rewarded 24 giờ hoặc đợi mua PRO sau).
+/// - Preset PRO đã mở (mua PRO / mở tạm còn hạn) -> sang FineTune.
 /// - Chưa có nguồn (bấm preset ở Home khi chưa ghi) -> nhắc ghi/import trước.
 class EffectsScreen extends ConsumerStatefulWidget {
   const EffectsScreen({super.key, this.args});
@@ -23,17 +27,19 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
   var _query = '';
 
   void _pick(EffectPreset preset) {
+    final s = AppLocalizations.of(context);
     final source = widget.args?.source;
     if (source == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ghi âm hoặc import file trước rồi mới chọn hiệu ứng nhé.'),
-        ),
+        SnackBar(content: Text(s.t('effectsNeedSource'))),
       );
       return;
     }
-    if (preset.isPro) {
-      context.push('/paywall');
+    // PRO chưa mở (kể cả mở tạm đã hết hạn) thì sang Paywall; đã mở thì
+    // đi thẳng vào FineTune như preset thường.
+    if (preset.isPro &&
+        !ref.read(entitlementProvider).isPresetUnlocked(preset)) {
+      context.push('/paywall', extra: PaywallArgs(preset: preset, source: source));
       return;
     }
     context.push('/editor', extra: EditorArgs(source: source, preset: preset));
@@ -41,19 +47,20 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
     final presets = ref.watch(presetListProvider);
     final source = widget.args?.source;
     return Scaffold(
-      appBar: AppBar(title: const Text('Chọn hiệu ứng')),
+      appBar: AppBar(title: Text(s.t('effectsTitle'))),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Tìm hiệu ứng...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
+              decoration: InputDecoration(
+                hintText: s.t('effectsSearchHint'),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(16)),
                 ),
               ),
@@ -68,12 +75,10 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      const Expanded(
-                        child: Text('Chưa có bản ghi nào. Ghi âm hoặc import file trước nhé.'),
-                      ),
+                      Expanded(child: Text(s.t('effectsNoSource'))),
                       ElevatedButton(
                         onPressed: () => context.push('/record'),
-                        child: const Text('Ghi âm'),
+                        child: Text(s.t('effectsRecordBtn')),
                       ),
                     ],
                   ),
@@ -85,7 +90,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Nguồn: ${source.name}'),
+                child: Text('${s.t('effectsSource')}: ${source.name}'),
               ),
             ),
           const SizedBox(height: 8),
@@ -99,7 +104,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                       p.id.contains(_query);
                 }).toList();
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('Không tìm thấy hiệu ứng nào.'));
+                  return Center(child: Text(s.t('effectsNotFound')));
                 }
                 return GridView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -114,6 +119,10 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                     final preset = filtered[index];
                     final preselected =
                         preset.id == widget.args?.preselectedPresetId;
+                    final locked = preset.isPro &&
+                        !ref
+                            .watch(entitlementProvider)
+                            .isPresetUnlocked(preset);
                     return Card(
                       color: preselected
                           ? Theme.of(context)
@@ -130,7 +139,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                preset.isPro ? Icons.lock : Icons.audiotrack,
+                                locked ? Icons.lock : Icons.audiotrack,
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -157,7 +166,7 @@ class _EffectsScreenState extends ConsumerState<EffectsScreen> {
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
-                child: Text('Không tải được preset: $error'),
+                child: Text('${s.t('effectsLoadFailed')}: $error'),
               ),
             ),
           ),

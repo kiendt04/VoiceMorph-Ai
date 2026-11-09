@@ -158,6 +158,24 @@ class LibraryService {
     await _saveIndex(entries);
   }
 
+  /// Xóa toàn bộ thư viện (Giai đoạn 3, màn Settings): xóa hết file
+  /// bản đã lưu + file gốc kèm theo và index. Không động vào cài đặt
+  /// hay trạng thái PRO (những thứ đó nằm ở SettingsService).
+  Future<void> clearAll() async {
+    final dir = await _libraryDir;
+    final entries = await loadEntries();
+    for (final entry in entries) {
+      final rendered = File('${dir.path}/${entry.fileName}');
+      if (rendered.existsSync()) await rendered.delete();
+      if (entry.originalFileName != null) {
+        final original = File('${dir.path}/${entry.originalFileName}');
+        if (original.existsSync()) await original.delete();
+      }
+    }
+    final index = await _indexFile;
+    if (index.existsSync()) await index.delete();
+  }
+
   String _extension(String path) {
     final name = path.split('/').last;
     final dot = name.lastIndexOf('.');

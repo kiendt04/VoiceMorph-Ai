@@ -10,6 +10,18 @@ enum ExportFormat {
   mp3('mp3', 'MP3'),
   m4a('m4a', 'M4A (AAC)');
 
+  /// Nhãn theo ngôn ngữ (dropdown ở màn Result/Settings).
+  String labelFor(String languageCode) {
+    if (languageCode == 'en') {
+      return switch (this) {
+        ExportFormat.wav => 'WAV (original)',
+        ExportFormat.mp3 => 'MP3',
+        ExportFormat.m4a => 'M4A (AAC)',
+      };
+    }
+    return label;
+  }
+
   const ExportFormat(this.extension, this.label);
 
   final String extension;

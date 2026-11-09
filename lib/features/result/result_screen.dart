@@ -10,11 +10,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../../core/strings.dart';
 import '../../services/audio/audio_format.dart';
 import '../../services/audio/ffmpeg_service.dart';
+import '../../services/settings/settings_service.dart';
 import '../common/providers.dart';
 import '../common/waveform.dart';
 import '../flow/flow_args.dart';
+import '../responsible_use/responsible_use_screen.dart';
 
 /// Màn Result: nghe đối chiếu Bản gốc / Đã đổi, Lưu vào thư viện,
 /// Chia sẻ, Đặt nhạc chuông (Android).
@@ -51,6 +54,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   @override
   void initState() {
     super.initState();
+    // Định dạng/bitrate mặc định lấy từ Settings (Giai đoạn 3), thay vì
+    // hardcode — người dùng đổi mặc định ở Settings thì màn này theo.
+    final settings = ref.read(settingsProvider);
+    _exportFormat = ExportFormat.fromExtension(settings.defaultExportFormat);
+    _bitrateKbps = settings.defaultExportBitrate;
     _prepareFadedCopy();
     _loadRenderedPeaks();
   }
@@ -103,7 +111,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
     setState(() => _exporting = true);
     try {
-      final path = await AudioTranscoder().encodeFromWav(
+      final path = await AudioTranscoder(
+        languageCode: ref.read(settingsProvider).language,
+      ).encodeFromWav(
         widget.args.renderedPath,
         _exportFormat,
         bitrateKbps: _bitrateKbps,
@@ -119,7 +129,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không xuất được: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('resultExportFailed')}: $e')),
         );
       }
       return null;
@@ -131,6 +141,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   /// Chia sẻ duy nhất: chia sẻ file ở định dạng đã chọn (WAV lấy thẳng
   /// file render gốc, MP3/M4A dùng bản xuất đã cache của [_export]).
   Future<void> _share() async {
+    // Lần chia sẻ đầu tiên: hiện màn Sử dụng có trách nhiệm trước
+    // (Giai đoạn 3). Người dùng chưa bấm "Đã hiểu" thì chưa chia sẻ.
+    if (!ref.read(settingsProvider).responsibleUseAccepted) {
+      final ok = await showResponsibleUseDialog(context, ref);
+      if (!ok || !mounted) return;
+    }
     final path = await _export();
     if (path == null || !mounted) return;
     try {
@@ -140,7 +156,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không chia sẻ được: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('cannotShare')}: $e')),
         );
       }
     }
@@ -165,14 +181,21 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         setState(() => _saved = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã lưu bản ${_exportFormat.label} vào thư viện.'),
+            content: Text(AppLocalizations.of(context).t(
+              'resultSavedFormat',
+              {
+                'f': _exportFormat.labelFor(
+                  ref.read(settingsProvider).language,
+                ),
+              },
+            )),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không lưu được: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('cannotSave')}: $e')),
         );
       }
     } finally {
@@ -207,7 +230,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không phát được: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('cannotPlay')}: $e')),
         );
       }
     }
@@ -221,8 +244,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     if (!Platform.isAndroid) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('iOS không cho app đặt nhạc chuông trực tiếp.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).t('resultRingtoneIos')),
           ),
         );
       }
@@ -238,15 +261,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         await showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Đặt làm nhạc chuông'),
-            content: const Text(
-              'File đã được lưu vào thư mục của app. Mở Cài đặt > Âm thanh > '
-              'Nhạc chuông trên điện thoại và chọn file vừa lưu nhé.',
-            ),
+            title: Text(AppLocalizations.of(context).t('resultRingtoneTitle')),
+            content: Text(AppLocalizations.of(context).t('resultRingtoneBody')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Đã hiểu'),
+                child: Text(AppLocalizations.of(context).t('gotIt')),
               ),
             ],
           ),
@@ -255,7 +275,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không lưu được file nhạc chuông: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context).t('resultRingtoneFailed')}: $e')),
         );
       }
     }
@@ -263,9 +283,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context);
+    final lang = ref.watch(settingsProvider).language;
     final preset = widget.args.preset;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kết quả')),
+      appBar: AppBar(title: Text(s.t('resultTitle'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -275,14 +297,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               preset.name('vi'),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text('Nguồn: ${widget.args.source.name}'),
+            Text('${s.t('resultSource')}: ${widget.args.source.name}'),
             if (_renderedPeaks != null) ...[
               const SizedBox(height: 24),
               WaveformBars(peaks: _renderedPeaks!),
               const SizedBox(height: 4),
-              const Text(
-                'Sóng âm bản đã đổi (từ PCM thật)',
-                style: TextStyle(color: Colors.grey),
+              Text(
+                s.t('resultWaveHint'),
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
             const SizedBox(height: 32),
@@ -297,7 +319,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           ? Icons.pause
                           : Icons.play_arrow,
                     ),
-                    label: const Text('Bản gốc'),
+                    label: Text(s.t('resultOriginal')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -309,7 +331,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           ? Icons.pause
                           : Icons.play_arrow,
                     ),
-                    label: const Text('Đã đổi'),
+                    label: Text(s.t('resultChanged')),
                   ),
                 ),
               ],
@@ -326,9 +348,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Định dạng xuất',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Text(
+                      s.t('resultExportFormat'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -341,7 +363,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                               for (final format in ExportFormat.values)
                                 DropdownMenuItem(
                                   value: format,
-                                  child: Text(format.label),
+                                  child: Text(format.labelFor(lang)),
                                 ),
                             ],
                             onChanged: _exporting
@@ -396,10 +418,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 icon: const Icon(Icons.save),
                 label: Text(
                   _saved
-                      ? 'Đã lưu'
+                      ? s.t('resultSaved')
                       : _exporting
-                          ? 'Đang xuất...'
-                          : 'Lưu vào thư viện',
+                          ? s.t('resultExporting')
+                          : s.t('resultSave'),
                 ),
               ),
             ),
@@ -410,7 +432,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _exporting ? null : _share,
                     icon: const Icon(Icons.share),
-                    label: Text(_exporting ? 'Đang xuất...' : 'Chia sẻ'),
+                    label: Text(_exporting ? s.t('resultExporting') : s.t('resultShare')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -418,7 +440,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _ringtone,
                     icon: const Icon(Icons.music_note),
-                    label: const Text('Nhạc chuông'),
+                    label: Text(s.t('resultRingtone')),
                   ),
                 ),
               ],
@@ -426,7 +448,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => context.go('/'),
-              child: const Text('Về trang chính'),
+              child: Text(s.t('resultHome')),
             ),
           ],
         ),

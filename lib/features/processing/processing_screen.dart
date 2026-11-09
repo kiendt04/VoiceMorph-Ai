@@ -2,25 +2,28 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_core/voice_core.dart';
 
+import '../../core/strings.dart';
+import '../../services/ads/interstitial_gate.dart';
 import '../flow/flow_args.dart';
 
 /// Màn Processing: chạy RenderJob toàn file ở isolate, hiện tiến độ %,
 /// cho hủy (RenderJob tự xóa file tạm, không để file dở). Lỗi -> màn
 /// Failed với nút thử lại. Xong -> sang màn Result.
-class ProcessingScreen extends StatefulWidget {
+class ProcessingScreen extends ConsumerStatefulWidget {
   const ProcessingScreen({super.key, required this.args});
 
   final ProcessingArgs args;
 
   @override
-  State<ProcessingScreen> createState() => _ProcessingScreenState();
+  ConsumerState<ProcessingScreen> createState() => _ProcessingScreenState();
 }
 
-class _ProcessingScreenState extends State<ProcessingScreen> {
+class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
   RenderJob? _job;
   StreamSubscription<double>? _progressSub;
   var _progress = 0.0;
@@ -67,6 +70,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       });
       await job.done;
       if (!mounted || _cancelled) return;
+      // Render thành công: cổng interstitial (Giai đoạn 3) quyết định có
+      // hiện quảng cáo không — lỗi quảng cáo không chặn sang Result.
+      await InterstitialGate.maybeShowAfterRender(ref);
+      if (!mounted || _cancelled) return;
       context.go(
         '/result',
         extra: ResultArgs(
@@ -93,7 +100,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Xử lý thất bại')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context).t('processingFailedTitle'))),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -102,26 +109,27 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               const Icon(Icons.error_outline, size: 64),
               const SizedBox(height: 16),
               Text(
-                'Không xử lý được file: $_error',
+                '${AppLocalizations.of(context).t('processingFailed')}: $_error',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _start,
-                child: const Text('Thử lại'),
+                child: Text(AppLocalizations.of(context).t('retry')),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.pop(),
-                child: const Text('Quay lại'),
+                child: Text(AppLocalizations.of(context).t('back')),
               ),
             ],
           ),
         ),
       );
     }
+    final s = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Đang xử lý')),
+      appBar: AppBar(title: Text(s.t('processingTitle'))),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -133,11 +141,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
             const SizedBox(height: 12),
             Text('${(_progress * 100).toStringAsFixed(0)}%'),
             const SizedBox(height: 8),
-            Text('Preset: ${widget.args.preset.name('vi')}'),
+            Text('${s.t('processingPreset')}: ${widget.args.preset.name('vi')}'),
             const SizedBox(height: 24),
             OutlinedButton(
               onPressed: _cancel,
-              child: const Text('Hủy'),
+              child: Text(s.t('processingCancel')),
             ),
           ],
         ),
