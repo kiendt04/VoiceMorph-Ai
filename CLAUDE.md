@@ -8,10 +8,19 @@ VoiceMorph is an offline Flutter app for Android and iOS that changes voices wit
 
 Current state:
 - **The voice-changing logic is in `packages/voice_core`.** It is a pure Dart package with no Flutter dependency. The only Flutter-specific piece is the `flutter: assets:` entry in its pubspec.
-- The Flutter app has a Phase 0 foundation and nothing more (see "App structure" below).
-- The platform audio layer is not built: recording, MP3/M4A decode, playback, and MP3/AAC export. `record`, `just_audio`, `file_picker`, `permission_handler`, `share_plus` and `path_provider` are declared in `pubspec.yaml` but nothing calls them yet.
-- The microphone permission is declared (Android `RECORD_AUDIO`, iOS `NSMicrophoneUsageDescription`), but there is no code that requests it. When an iOS Podfile is added, it needs the `PERMISSION_MICROPHONE=1` macro, or `permission_handler` always reports the permission as denied.
-- Storage, settings, and RevenueCat are not built.
+- **The app (Phases 0–2) runs the full loop:**
+  - Record or import WAV/MP3/M4A.
+  - Pick an effect, fine-tune it with a preview, and render it with a `RenderJob`.
+  - On the result screen: A/B playback, export to WAV/MP3/M4A, share, and save to the library.
+- **Not built yet:**
+  - The Settings and Paywall screens (still `PlaceholderScreen`).
+  - RevenueCat.
+  - Firebase.
+  - A formant control.
+- **The microphone permission** is requested in Onboarding and on the Record screen. When an iOS Podfile is added, it needs:
+  - the `PERMISSION_MICROPHONE=1` macro, or `permission_handler` always reports the permission as denied;
+  - `platform :ios, '14.0'`, because `ffmpeg_kit_flutter_new_audio` requires iOS 14. The Xcode deployment target is already 14.0.
+- Android `minSdk` is 24, which FFmpeg requires.
 - Bundle/application ID: `com.kiendt.voicemorph`.
 
 ## Commands
@@ -36,12 +45,30 @@ App (repo root): `flutter pub get`, `flutter analyze`, `flutter test`, `flutter 
 The app code is commented in Vietnamese.
 
 - **`main.dart`** initializes AdMob, then runs `MaterialApp.router` inside a Riverpod `ProviderScope`. The app uses a dark theme only (`core/theme.dart`).
-- **`core/router.dart`** is a single `GoRouter` holding every route from the spec. Only `/` (Home) is a real screen. The others are `PlaceholderScreen`s; replace each one with its real screen at the same path.
-- **`features/<screen>/`** holds screen code. Home is a temporary Phase 0 screen that includes buttons for testing ads.
+- **`core/router.dart`** is a single `GoRouter` holding every route from the spec.
+  - The app starts at `/splash`, which goes to `/onboarding` on first run, otherwise to `/`.
+  - Screens pass their data as typed `extra` objects defined in `features/flow/flow_args.dart`: `SourceArgs`, `EffectsArgs`, `EditorArgs`, `ProcessingArgs`, `ResultArgs`.
+  - The main flow is `/record` or import from Home → `/effects` → `/editor` → `/processing` → `/result`.
+- **`features/<screen>/`** holds screen code.
+  - `features/common/providers.dart` defines the shared Riverpod providers `presetListProvider` and `libraryProvider` (`LibraryNotifier`).
+  - `features/common/waveform.dart` defines `WaveformBars`.
+- **The pipeline runs on WAV only.**
+  - Recording writes WAV directly.
+  - Imported MP3/M4A files are decoded to a temporary WAV (mono, 44.1 kHz) by `AudioTranscoder` in `services/audio/ffmpeg_service.dart` before they enter the flow.
+  - On export, the rendered WAV is encoded to MP3/M4A.
+  - That file is the only code that calls FFmpeg. Its errors surface as `AudioFormatException`, whose messages are user-facing Vietnamese.
+- **`services/library/library_service.dart`** stores saved files in `documents/library/` together with a JSON index. There is no database.
+- **`features/onboarding/onboarding_flag.dart`** stores the "seen onboarding" flag as an empty file in documents.
 - **`services/presets/preset_service.dart`** loads presets from the `voice_core` package asset (`packages/voice_core/assets/...` through `rootBundle`, with no app-level asset entry). It also defines the 5 Home featured IDs.
 - **`services/ads/`** is the only code that touches `google_mobile_ads`.
-  - `AdConfig` uses Google's test IDs while `useTestAds` is true. The test App IDs are also hard-coded in `AndroidManifest.xml` and `Info.plist`, so all three places must change together before release.
+  - `AdConfig.useTestAds = !kReleaseMode`: debug and profile builds use Google's test ad units, and release builds use the real ones. Never use real ad units in debug builds.
+  - Android has a real App ID (in `AndroidManifest.xml`) and real ad units.
+  - iOS has no AdMob app yet. Its production IDs are empty, so ads are off in iOS release builds, and `Info.plist` still holds the test `GADApplicationIdentifier`. When the iOS app is created, update both `Info.plist` and `ad_config.dart`.
   - `AdService` swallows every ad error, returning null or false, so ads never crash the app.
+
+Widget tests (`test/widget_test.dart`):
+- `testWidgets` runs on fake time, so real file I/O (`File.create`, `rootBundle.loadString`) never completes. Wrap steps that write files in `tester.runAsync`, or read fixtures synchronously.
+- `path_provider` is mocked to a per-test temp directory, which is deleted in `tearDown`.
 
 ## voice_core architecture
 
