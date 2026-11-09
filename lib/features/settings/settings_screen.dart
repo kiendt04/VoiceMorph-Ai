@@ -73,23 +73,26 @@ class SettingsScreen extends ConsumerWidget {
             s.t('settingsTheme'),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          RadioListTile<String>(
-            title: Text(s.t('settingsThemeSystem')),
-            value: 'system',
+          RadioGroup<String>(
             groupValue: settings.themeMode,
-            onChanged: (v) => v == null ? null : notifier.setThemeMode(v),
-          ),
-          RadioListTile<String>(
-            title: Text(s.t('settingsThemeDark')),
-            value: 'dark',
-            groupValue: settings.themeMode,
-            onChanged: (v) => v == null ? null : notifier.setThemeMode(v),
-          ),
-          RadioListTile<String>(
-            title: Text(s.t('settingsThemeLight')),
-            value: 'light',
-            groupValue: settings.themeMode,
-            onChanged: (v) => v == null ? null : notifier.setThemeMode(v),
+            onChanged: (v) =>
+                v == null ? null : notifier.setThemeMode(v),
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  title: Text(s.t('settingsThemeSystem')),
+                  value: 'system',
+                ),
+                RadioListTile<String>(
+                  title: Text(s.t('settingsThemeDark')),
+                  value: 'dark',
+                ),
+                RadioListTile<String>(
+                  title: Text(s.t('settingsThemeLight')),
+                  value: 'light',
+                ),
+              ],
+            ),
           ),
           const Divider(),
           Text(
@@ -143,17 +146,21 @@ class SettingsScreen extends ConsumerWidget {
             s.t('settingsLanguage'),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          RadioListTile<String>(
-            title: Text(s.t('settingsVietnamese')),
-            value: 'vi',
+          RadioGroup<String>(
             groupValue: settings.language,
             onChanged: (v) => v == null ? null : notifier.setLanguage(v),
-          ),
-          RadioListTile<String>(
-            title: Text(s.t('settingsEnglish')),
-            value: 'en',
-            groupValue: settings.language,
-            onChanged: (v) => v == null ? null : notifier.setLanguage(v),
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  title: Text(s.t('settingsVietnamese')),
+                  value: 'vi',
+                ),
+                RadioListTile<String>(
+                  title: Text(s.t('settingsEnglish')),
+                  value: 'en',
+                ),
+              ],
+            ),
           ),
           const Divider(),
           ListTile(
