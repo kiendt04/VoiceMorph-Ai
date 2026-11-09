@@ -38,8 +38,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   var _saving = false;
   String? _fadedPath;
   Float32List? _renderedPeaks;
-  // Giai đoạn 2: xuất MP3/M4A.
-  var _exportFormat = ExportFormat.mp3;
+  // Dọn nút (sau Giai đoạn 2): một cặp Lưu/Chia sẻ duy nhất, chạy theo
+  // định dạng đã chọn. Mặc định WAV để giữ đúng hành vi Giai đoạn 1;
+  // MP3/M4A là lựa chọn thêm, đổi 1 dòng dưới đây là đổi mặc định.
+  var _exportFormat = ExportFormat.wav;
   var _bitrateKbps = 192;
   var _exporting = false;
   String? _exportedPath;
@@ -126,10 +128,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
   }
 
-  Future<void> _shareExport() async {
+  /// Chia sẻ duy nhất: chia sẻ file ở định dạng đã chọn (WAV lấy thẳng
+  /// file render gốc, MP3/M4A dùng bản xuất đã cache của [_export]).
+  Future<void> _share() async {
     final path = await _export();
     if (path == null || !mounted) return;
     try {
+      // share_plus 10.x (the version pinned in pubspec.lock) uses the
+      // static Share API; SharePlus.instance only exists from 11.0.0.
       await Share.shareXFiles([XFile(path)]);
     } catch (e) {
       if (mounted) {
@@ -140,10 +146,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
   }
 
-  Future<void> _saveExport() async {
-    final path = await _export();
-    if (path == null || !mounted) return;
+  /// Lưu duy nhất: lưu file ở định dạng đã chọn vào thư viện, rồi khóa
+  /// nút lại (chốt "Đã lưu") để không lưu trùng 2 entry như trước.
+  Future<void> _save() async {
+    if (_saving || _exporting) return;
+    setState(() => _saving = true);
     try {
+      final path = await _export();
+      if (path == null || !mounted) return;
       final name =
           '${widget.args.preset.name('vi')} — ${widget.args.source.name}';
       await ref.read(libraryProvider.notifier).addRendered(
@@ -152,6 +162,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             name: name,
           );
       if (mounted) {
+        setState(() => _saved = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã lưu bản ${_exportFormat.label} vào thư viện.'),
@@ -164,6 +175,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           SnackBar(content: Text('Không lưu được: $e')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -195,48 +208,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Không phát được: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _save() async {
-    if (_saving) return;
-    setState(() => _saving = true);
-    try {
-      final name =
-          '${widget.args.preset.name('vi')} — ${widget.args.source.name}';
-      await ref.read(libraryProvider.notifier).addRendered(
-            renderedPath: widget.args.renderedPath,
-            originalPath: widget.args.source.path,
-            name: name,
-          );
-      if (mounted) {
-        setState(() => _saved = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã lưu vào thư viện.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không lưu được: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _share() async {
-    try {
-      // share_plus 10.x (the version pinned in pubspec.lock) uses the
-      // static Share API; SharePlus.instance only exists from 11.0.0.
-      await Share.shareXFiles([XFile(widget.args.renderedPath)]);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không chia sẻ được: $e')),
         );
       }
     }
@@ -344,38 +315,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               ],
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _saved || _saving ? null : _save,
-                icon: const Icon(Icons.save),
-                label: Text(_saved ? 'Đã lưu' : 'Lưu vào thư viện'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _share,
-                    icon: const Icon(Icons.share),
-                    label: const Text('Chia sẻ'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _ringtone,
-                    icon: const Icon(Icons.music_note),
-                    label: const Text('Nhạc chuông'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Giai đoạn 2: xuất MP3/M4A. WAV là file render gốc, không
-            // cần mã hóa lại. Chọn chất lượng ở đây; màn Settings thật
-            // (mặc định xuất) để Giai đoạn 3, theo kế hoạch.
+            // Dọn nút (sau Giai đoạn 2): chỉ còn một cặp Lưu/Chia sẻ duy
+            // nhất, chạy theo định dạng đã chọn ở dưới. WAV là file render
+            // gốc, không cần mã hóa lại; MP3/M4A qua FFmpeg, dùng cache
+            // của [_export]. Màn Settings thật (mặc định xuất) để
+            // Giai đoạn 3, theo kế hoạch.
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -383,7 +327,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Xuất file',
+                      'Định dạng xuất',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
@@ -440,31 +384,44 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _exporting ? null : _shareExport,
-                            icon: const Icon(Icons.share),
-                            label: Text(
-                              _exporting ? 'Đang xuất...' : 'Chia sẻ bản xuất',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _exporting ? null : _saveExport,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Lưu bản xuất'),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _saved || _saving || _exporting ? null : _save,
+                icon: const Icon(Icons.save),
+                label: Text(
+                  _saved
+                      ? 'Đã lưu'
+                      : _exporting
+                          ? 'Đang xuất...'
+                          : 'Lưu vào thư viện',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _exporting ? null : _share,
+                    icon: const Icon(Icons.share),
+                    label: Text(_exporting ? 'Đang xuất...' : 'Chia sẻ'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _ringtone,
+                    icon: const Icon(Icons.music_note),
+                    label: const Text('Nhạc chuông'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextButton(
