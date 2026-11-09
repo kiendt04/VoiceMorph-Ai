@@ -17,6 +17,13 @@ class AdConfig {
   /// true ở debug/profile (dùng ID test), false ở release (dùng ID thật).
   static const bool useTestAds = !kReleaseMode;
 
+  /// Máy của dev/QA: AdMob trả quảng cáo test cho các máy này kể cả ở
+  /// bản release, để bấm thử không bị tính là click không hợp lệ.
+  /// Lấy ID: chạy `flutter run --release`, mở màn có banner, tìm dòng
+  /// `setTestDeviceIds(Arrays.asList("..."))` trong log rồi dán chuỗi
+  /// trong ngoặc kép vào đây.
+  static const List<String> testDeviceIds = [];
+
   static const _testAppIds = {
     'android': 'ca-app-pub-3940256099942544~3347511713',
     'ios': 'ca-app-pub-3940256099942544~1458002511',

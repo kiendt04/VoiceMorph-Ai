@@ -24,6 +24,12 @@ class AdService {
     if (_initialized) return;
     try {
       await MobileAds.instance.initialize();
+      // Khai máy test trước khi nạp quảng cáo đầu tiên.
+      if (AdConfig.testDeviceIds.isNotEmpty) {
+        await MobileAds.instance.updateRequestConfiguration(
+          RequestConfiguration(testDeviceIds: AdConfig.testDeviceIds),
+        );
+      }
       _initialized = true;
     } catch (_) {
       // Quảng cáo là tính năng phụ: SDK lỗi thì app vẫn chạy không quảng cáo.
