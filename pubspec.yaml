@@ -49,7 +49,10 @@ dependencies:
   google_mobile_ads: ^5.0.0
   # Giai đoạn 2: giải mã MP3/M4A và mã hóa MP3/M4A. Bản audio (LGPL,
   # không chứa codec GPL) là đủ vì app chỉ cần codec âm thanh.
-  ffmpeg_kit_flutter_new_audio: ^2.5.3
+  # Khóa cứng 2.5.7 (bản sếp đã resolve ngày 2026-11-09): ở bản này
+  # ReturnCode nằm ở thư viện return_code riêng, không export qua
+  # ffmpeg_kit.dart — xem import trong ffmpeg_service.dart.
+  ffmpeg_kit_flutter_new_audio: 2.5.7
 
 dev_dependencies:
   flutter_test:
