@@ -1,25 +1,33 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 /// Cấu hình AdMob: App ID và Ad Unit ID theo nền tảng.
 ///
-/// Khi dev luôn dùng ID test chính thức của Google. Chỉ đổi [useTestAds]
-/// thành false VÀ điền ID thật vào [production] trước khi release — tuyệt
-/// đối không dùng ID thật trong bản debug, vì traffic test có thể làm
-/// tài khoản AdMob bị hạn chế.
+/// Debug/profile luôn dùng ID test chính thức của Google, release tự
+/// động dùng ID thật ([useTestAds] = !kReleaseMode) — không cần đổi tay
+/// trước khi release, và tuyệt đối không dùng ID thật trong bản debug,
+/// vì traffic test có thể làm tài khoản AdMob bị hạn chế.
 ///
-/// App ID test cũng phải khớp với meta-data trong AndroidManifest.xml
-/// và key GADApplicationIdentifier trong Info.plist (đã khai sẵn).
+/// App ID thật trên Android đã khai trong AndroidManifest.xml.
+/// iOS chưa có app/Ad Unit thật trên AdMob nên [production] iOS vẫn để
+/// trống — bản release iOS sẽ tự tắt quảng cáo cho tới khi sếp tạo app
+/// iOS trên AdMob và điền ID vào đây.
 class AdConfig {
-  /// Đổi thành false khi đã có tài khoản AdMob thật và ID thật.
-  static const bool useTestAds = true;
+  /// true ở debug/profile (dùng ID test), false ở release (dùng ID thật).
+  static const bool useTestAds = !kReleaseMode;
 
   static const _testAppIds = {
     'android': 'ca-app-pub-3940256099942544~3347511713',
     'ios': 'ca-app-pub-3940256099942544~1458002511',
   };
 
-  /// Điền App ID thật từ AdMob vào đây trước khi release.
-  static const _productionAppIds = {'android': '', 'ios': ''};
+  /// App ID thật từ AdMob (sếp tạo ngày 2026-11-09).
+  /// Android: ca-app-pub-2282607783775102~1502719044
+  static const _productionAppIds = {
+    'android': 'ca-app-pub-2282607783775102~1502719044',
+    'ios': '',
+  };
 
   /// ID test chính thức của Google cho từng định dạng.
   static const _testAdUnits = {
@@ -35,9 +43,16 @@ class AdConfig {
     },
   };
 
-  /// Điền Ad Unit ID thật từ AdMob vào đây trước khi release.
+  /// Ad Unit ID thật từ AdMob (sếp tạo ngày 2026-11-09, Android).
+  /// Banner: ca-app-pub-2282607783775102/2295045638
+  /// Interstitial: ca-app-pub-2282607783775102/6306267824
+  /// Rewarded: ca-app-pub-2282607783775102/5966697338
   static const _productionAdUnits = {
-    'android': {'banner': '', 'interstitial': '', 'rewarded': ''},
+    'android': {
+      'banner': 'ca-app-pub-2282607783775102/2295045638',
+      'interstitial': 'ca-app-pub-2282607783775102/6306267824',
+      'rewarded': 'ca-app-pub-2282607783775102/5966697338',
+    },
     'ios': {'banner': '', 'interstitial': '', 'rewarded': ''},
   };
 
